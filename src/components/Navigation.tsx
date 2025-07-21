@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Mail, Menu, X, Home, Upload, Users, Edit, Send } from 'lucide-react';
+import { Mail, Home, Upload, Edit, Send } from 'lucide-react';
 
 const Navigation: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
   const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/upload', label: 'Upload CSV', icon: Upload },
-    { path: '/classify', label: 'Classify', icon: Users },
-    { path: '/compose', label: 'Compose', icon: Edit },
-    { path: '/simulate', label: 'Send', icon: Send },
+    { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/upload', label: 'Upload Contacts', icon: Upload },
+    { path: '/compose', label: 'Compose Email', icon: Edit },
+    { path: '/send', label: 'Send Campaign', icon: Send },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -22,11 +20,10 @@ const Navigation: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
             <Mail className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">MailMatrix</span>
+            <span className="text-xl font-bold text-gray-900">MailDispatcher</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-8">
+          <div className="flex space-x-8">
             {navItems.map(({ path, label, icon: Icon }) => (
               <Link
                 key={path}
@@ -42,40 +39,7 @@ const Navigation: React.FC = () => {
               </Link>
             ))}
           </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-2 rounded-md text-gray-600 hover:text-blue-600 hover:bg-gray-50"
-            >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden pb-4">
-            <div className="space-y-1">
-              {navItems.map(({ path, label, icon: Icon }) => (
-                <Link
-                  key={path}
-                  to={path}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                    isActive(path)
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );
