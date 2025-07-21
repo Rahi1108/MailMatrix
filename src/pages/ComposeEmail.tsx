@@ -1,77 +1,86 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Mail, Type } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Mail, User, Type, AlertCircle } from 'lucide-react';
 
 interface ComposeEmailProps {
+  senderEmail: string;
   subject: string;
   body: string;
+  onSenderEmailChange: (email: string) => void;
   onSubjectChange: (subject: string) => void;
   onBodyChange: (body: string) => void;
 }
 
 const ComposeEmail: React.FC<ComposeEmailProps> = ({
+  senderEmail,
   subject,
   body,
+  onSenderEmailChange,
   onSubjectChange,
   onBodyChange
 }) => {
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
+
+  const isValidSender = validateEmail(senderEmail);
+  const canProceed = isValidSender && subject.trim() && body.trim();
+
   const templates = [
     {
       title: 'Welcome Message',
-      subject: 'Welcome to our community!',
-      body: `Dear [Name],
+      subject: 'Welcome to University - Important Information',
+      body: `Dear Students,
 
-Welcome to our community! We're excited to have you join us.
+Welcome to our university! We're excited to have you join our academic community.
 
-Here's what you can expect:
-• Regular updates and newsletters
-• Exclusive member benefits
-• Access to special events
+Here's what you need to know:
+• Course registration opens next week
+• Orientation sessions are mandatory
+• Student ID cards are available at the main office
 
-If you have any questions, feel free to reach out.
+If you have any questions, please don't hesitate to contact us.
 
 Best regards,
-The Team`
+University Administration`
     },
     {
-      title: 'Newsletter',
-      subject: 'Monthly Newsletter - [Month] Edition',
-      body: `Hello [Name],
+      title: 'Event Announcement',
+      subject: 'Upcoming Campus Event - Mark Your Calendar',
+      body: `Dear Students and Faculty,
 
-Here's what's happening this month:
+We're pleased to announce an exciting upcoming event on campus.
 
-📰 Latest News
-• Update 1
-• Update 2
-• Update 3
+Event Details:
+• Date: [Insert Date]
+• Time: [Insert Time]  
+• Location: Main Auditorium
+• Topic: Academic Excellence Workshop
 
-📅 Upcoming Events
-• Event 1 - Date
-• Event 2 - Date
+Please RSVP by replying to this email.
 
-Thank you for being part of our community!
+Looking forward to seeing you there!
 
 Best regards,
-Newsletter Team`
+Event Planning Committee`
     },
     {
-      title: 'Event Invitation',
-      subject: 'You\'re Invited: [Event Name]',
-      body: `Dear [Name],
+      title: 'Important Notice',
+      subject: 'Important: Action Required - Please Read',
+      body: `Dear Students,
 
-You're cordially invited to our upcoming event!
+This is an important notice regarding upcoming deadlines and requirements.
 
-🎉 Event: [Event Name]
-📅 Date: [Date]
-🕐 Time: [Time]
-📍 Location: [Location]
+Please ensure you:
+• Complete your course registration by the deadline
+• Submit all required documents to the registrar
+• Attend mandatory orientation sessions
 
-Please RSVP by [RSVP Date].
-
-We look forward to seeing you there!
+For assistance, contact our student services team.
 
 Best regards,
-Event Team`
+Academic Affairs Office`
     }
   ];
 
@@ -86,7 +95,7 @@ Event Team`
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Compose Email</h1>
         <p className="text-lg text-gray-600">
-          Create your email campaign with a compelling subject and message
+          Create your email campaign with compelling content and proper sender information
         </p>
       </div>
 
@@ -100,10 +109,40 @@ Event Team`
             </div>
 
             <div className="space-y-6">
+              {/* Sender Email Field */}
+              <div>
+                <label htmlFor="sender" className="block text-sm font-medium text-gray-700 mb-2">
+                  Sender Email <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="sender"
+                    type="email"
+                    value={senderEmail}
+                    onChange={(e) => onSenderEmailChange(e.target.value)}
+                    placeholder="your-email@university.edu"
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      senderEmail && !isValidSender 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-gray-300'
+                    }`}
+                  />
+                </div>
+                {senderEmail && !isValidSender && (
+                  <div className="flex items-center space-x-1 mt-2">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <p className="text-sm text-red-600">Please enter a valid email address</p>
+                  </div>
+                )}
+              </div>
+
               {/* Subject Field */}
               <div>
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-                  Subject Line
+                  Subject Line <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="subject"
@@ -118,7 +157,7 @@ Event Team`
               {/* Body Field */}
               <div>
                 <label htmlFor="body" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Body
+                  Message Body <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   id="body"
@@ -128,12 +167,15 @@ Event Team`
                   rows={12}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
+                <p className="text-sm text-gray-500 mt-1">
+                  Characters: {body.length}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Preview */}
-          {(subject || body) && (
+          {(subject || body) && isValidSender && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Preview</h3>
               <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
@@ -141,7 +183,8 @@ Event Team`
                   <h4 className="font-semibold text-gray-900">
                     {subject || 'No subject'}
                   </h4>
-                  <p className="text-sm text-gray-600">From: your-email@domain.com</p>
+                  <p className="text-sm text-gray-600">From: {senderEmail}</p>
+                  <p className="text-sm text-gray-600">To: Recipients from uploaded contacts</p>
                 </div>
                 <div className="whitespace-pre-wrap text-gray-800">
                   {body || 'No content'}
@@ -176,6 +219,25 @@ Event Team`
                 </button>
               ))}
             </div>
+
+            {/* Requirements Checklist */}
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-3">Requirements</h4>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <div className={`w-4 h-4 rounded-full ${isValidSender ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <span className="text-sm text-gray-600">Valid sender email</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-4 h-4 rounded-full ${subject.trim() ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <span className="text-sm text-gray-600">Subject line</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-4 h-4 rounded-full ${body.trim() ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <span className="text-sm text-gray-600">Message content</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -190,7 +252,7 @@ Event Team`
           <span>Back: Upload Contacts</span>
         </Link>
         
-        {subject && body && (
+        {canProceed ? (
           <Link
             to="/send"
             className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
@@ -198,6 +260,11 @@ Event Team`
             <span>Next: Send Campaign</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
+        ) : (
+          <div className="flex items-center space-x-2 px-6 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed">
+            <span>Complete all fields</span>
+            <ArrowRight className="h-4 w-4" />
+          </div>
         )}
       </div>
     </div>

@@ -6,8 +6,17 @@ import UploadContacts from './pages/UploadContacts';
 import ComposeEmail from './pages/ComposeEmail';
 import SendCampaign from './pages/SendCampaign';
 
+export interface EmailContact {
+  email: string;
+  name?: string;
+  category: 'to' | 'cc' | 'bcc';
+  isValid: boolean;
+}
+
 export interface AppState {
   uploadedFile: File | null;
+  emailContacts: EmailContact[];
+  senderEmail: string;
   emailSubject: string;
   emailBody: string;
   stats: {
@@ -21,13 +30,15 @@ export interface AppState {
 function App() {
   const [appState, setAppState] = useState<AppState>({
     uploadedFile: null,
+    emailContacts: [],
+    senderEmail: '',
     emailSubject: '',
     emailBody: '',
     stats: {
-      totalCampaigns: 24,
-      emailsSent: 15847,
-      activeRecipients: 2341,
-      successRate: 94.2
+      totalCampaigns: 47,
+      emailsSent: 23456,
+      activeRecipients: 3892,
+      successRate: 96.8
     }
   });
 
@@ -50,7 +61,9 @@ function App() {
               element={
                 <UploadContacts 
                   uploadedFile={appState.uploadedFile}
+                  emailContacts={appState.emailContacts}
                   onFileUpload={(file) => updateAppState({ uploadedFile: file })}
+                  onContactsProcessed={(contacts) => updateAppState({ emailContacts: contacts })}
                 />
               } 
             />
@@ -58,8 +71,10 @@ function App() {
               path="/compose" 
               element={
                 <ComposeEmail 
+                  senderEmail={appState.senderEmail}
                   subject={appState.emailSubject}
                   body={appState.emailBody}
+                  onSenderEmailChange={(email) => updateAppState({ senderEmail: email })}
                   onSubjectChange={(subject) => updateAppState({ emailSubject: subject })}
                   onBodyChange={(body) => updateAppState({ emailBody: body })}
                 />
@@ -70,17 +85,23 @@ function App() {
               element={
                 <SendCampaign 
                   uploadedFile={appState.uploadedFile}
+                  emailContacts={appState.emailContacts}
+                  senderEmail={appState.senderEmail}
                   subject={appState.emailSubject}
                   body={appState.emailBody}
                   onCampaignSent={() => {
+                    const validContacts = appState.emailContacts.filter(c => c.isValid);
                     const newStats = {
                       ...appState.stats,
                       totalCampaigns: appState.stats.totalCampaigns + 1,
-                      emailsSent: appState.stats.emailsSent + Math.floor(Math.random() * 500) + 100
+                      emailsSent: appState.stats.emailsSent + validContacts.length,
+                      activeRecipients: appState.stats.activeRecipients + Math.floor(Math.random() * 50)
                     };
                     updateAppState({ 
                       stats: newStats,
                       uploadedFile: null,
+                      emailContacts: [],
+                      senderEmail: '',
                       emailSubject: '',
                       emailBody: ''
                     });

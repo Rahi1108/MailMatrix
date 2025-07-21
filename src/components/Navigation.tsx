@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Mail, Home, Upload, Edit, Send } from 'lucide-react';
+import { Grid3X3, Home, Upload, Edit, Send } from 'lucide-react';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
@@ -19,8 +19,8 @@ const Navigation: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <Mail className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">MailDispatcher</span>
+            <Grid3X3 className="h-8 w-8 text-blue-600" />
+            <span className="text-xl font-bold text-gray-900">MailMatrix</span>
           </Link>
 
           <div className="flex space-x-8">

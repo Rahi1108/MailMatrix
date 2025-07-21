@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, FileText, Mail, Users, CheckCircle, ArrowLeft, Home } from 'lucide-react';
+import { Send, FileText, Mail, Users, CheckCircle, ArrowLeft, Home, Clock } from 'lucide-react';
+import { EmailContact } from '../App';
 
 interface SendCampaignProps {
   uploadedFile: File | null;
+  emailContacts: EmailContact[];
+  senderEmail: string;
   subject: string;
   body: string;
   onCampaignSent: () => void;
@@ -11,36 +14,60 @@ interface SendCampaignProps {
 
 const SendCampaign: React.FC<SendCampaignProps> = ({
   uploadedFile,
+  emailContacts,
+  senderEmail,
   subject,
   body,
   onCampaignSent
 }) => {
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [sendingProgress, setSendingProgress] = useState(0);
+
+  const validContacts = emailContacts.filter(contact => contact.isValid);
+  const toContacts = validContacts.filter(contact => contact.category === 'to');
+  const ccContacts = validContacts.filter(contact => contact.category === 'cc');
+  const bccContacts = validContacts.filter(contact => contact.category === 'bcc');
 
   const handleSend = async () => {
     setIsSending(true);
+    setSendingProgress(0);
     
-    // Simulate sending delay
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setIsSending(false);
-    setIsSent(true);
-    onCampaignSent();
-    
-    // Show success alert
-    alert('🎉 Campaign sent successfully! Your emails are being delivered.');
+    // Simulate sending progress
+    const interval = setInterval(() => {
+      setSendingProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsSending(false);
+          setIsSent(true);
+          onCampaignSent();
+          
+          // Show success alert
+          alert(`🎉 Campaign sent successfully! 
+          
+✅ ${validContacts.length} emails delivered
+📧 TO: ${toContacts.length} recipients
+📧 CC: ${ccContacts.length} recipients  
+📧 BCC: ${bccContacts.length} recipients
+
+Your campaign is now active and delivery reports will be available in your dashboard.`);
+          
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
   };
 
-  const estimatedRecipients = uploadedFile ? Math.floor(uploadedFile.size / 30) : 0;
+  const canSend = uploadedFile && validContacts.length > 0 && senderEmail && subject && body;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Send Campaign</h1>
         <p className="text-lg text-gray-600">
-          Review your campaign details and send to your recipients
+          Review your campaign details and send to your classified recipients
         </p>
       </div>
 
@@ -49,7 +76,7 @@ const SendCampaign: React.FC<SendCampaignProps> = ({
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Campaign Summary</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* File Info */}
+          {/* File & Sender Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <FileText className="h-6 w-6 text-blue-600" />
@@ -62,32 +89,49 @@ const SendCampaign: React.FC<SendCampaignProps> = ({
             </div>
             
             <div className="flex items-center space-x-3">
-              <Users className="h-6 w-6 text-emerald-600" />
+              <Mail className="h-6 w-6 text-emerald-600" />
               <div>
-                <h3 className="font-medium text-gray-900">Recipients</h3>
+                <h3 className="font-medium text-gray-900">Sender</h3>
                 <p className="text-sm text-gray-600">
-                  ~{estimatedRecipients} contacts
+                  {senderEmail || 'No sender email set'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Email Info */}
+          {/* Recipients Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <Mail className="h-6 w-6 text-indigo-600" />
+              <Users className="h-6 w-6 text-indigo-600" />
               <div>
-                <h3 className="font-medium text-gray-900">Subject</h3>
+                <h3 className="font-medium text-gray-900">Recipients</h3>
                 <p className="text-sm text-gray-600">
-                  {subject || 'No subject set'}
+                  {validContacts.length} valid contacts
                 </p>
               </div>
             </div>
             
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Content Preview</h3>
-              <div className="text-sm text-gray-600 bg-gray-50 rounded p-3 max-h-20 overflow-hidden">
-                {body ? body.substring(0, 100) + '...' : 'No content set'}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm">TO Recipients</span>
+                </span>
+                <span className="font-medium">{toContacts.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm">CC Recipients</span>
+                </span>
+                <span className="font-medium">{ccContacts.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm">BCC Recipients</span>
+                </span>
+                <span className="font-medium">{bccContacts.length}</span>
               </div>
             </div>
           </div>
@@ -95,14 +139,14 @@ const SendCampaign: React.FC<SendCampaignProps> = ({
       </div>
 
       {/* Email Preview */}
-      {subject && body && (
+      {subject && body && senderEmail && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Final Email Preview</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Message Preview</h2>
           <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
             <div className="border-b border-gray-300 pb-3 mb-4">
               <h3 className="font-semibold text-gray-900">{subject}</h3>
-              <p className="text-sm text-gray-600">From: your-email@domain.com</p>
-              <p className="text-sm text-gray-600">To: {estimatedRecipients} recipients</p>
+              <p className="text-sm text-gray-600">From: {senderEmail}</p>
+              <p className="text-sm text-gray-600">To: {validContacts.length} recipients</p>
             </div>
             <div className="whitespace-pre-wrap text-gray-800 max-h-40 overflow-y-auto">
               {body}
@@ -115,35 +159,53 @@ const SendCampaign: React.FC<SendCampaignProps> = ({
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {!isSent ? (
           <div className="text-center space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Ready to Send?</h2>
-              <p className="text-gray-600">
-                Your campaign will be sent to approximately {estimatedRecipients} recipients
-              </p>
-            </div>
-
-            {isSending ? (
+            {!canSend ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center justify-center space-x-2 mb-2">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                  <h3 className="font-medium text-yellow-900">Campaign Not Ready</h3>
+                </div>
+                <p className="text-yellow-800 text-sm">
+                  Please complete all previous steps before sending your campaign.
+                </p>
+                <ul className="text-yellow-700 text-sm mt-2 space-y-1">
+                  {!uploadedFile && <li>• Upload a contact file</li>}
+                  {validContacts.length === 0 && <li>• Ensure you have valid email contacts</li>}
+                  {!senderEmail && <li>• Set a sender email address</li>}
+                  {!subject && <li>• Add an email subject</li>}
+                  {!body && <li>• Write your email content</li>}
+                </ul>
+              </div>
+            ) : isSending ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-center space-x-2">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                   <span className="text-blue-600 font-medium">Sending campaign...</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${sendingProgress}%` }}
+                  ></div>
                 </div>
                 <p className="text-sm text-gray-600">
-                  Please wait while we deliver your emails...
+                  Delivering emails to {validContacts.length} recipients... ({sendingProgress}%)
                 </p>
               </div>
             ) : (
-              <button
-                onClick={handleSend}
-                disabled={!uploadedFile || !subject || !body}
-                className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                <Send className="h-5 w-5 mr-2" />
-                Send Campaign
-              </button>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Ready to Send?</h2>
+                <p className="text-gray-600 mb-6">
+                  Your campaign will be sent to {validContacts.length} recipients across {toContacts.length} TO, {ccContacts.length} CC, and {bccContacts.length} BCC addresses.
+                </p>
+                <button
+                  onClick={handleSend}
+                  className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                >
+                  <Send className="h-5 w-5 mr-2" />
+                  Send Campaign
+                </button>
+              </div>
             )}
           </div>
         ) : (
@@ -153,16 +215,16 @@ const SendCampaign: React.FC<SendCampaignProps> = ({
               <h2 className="text-xl font-semibold">Campaign Sent Successfully!</h2>
             </div>
             <p className="text-gray-600">
-              Your email has been sent to {estimatedRecipients} recipients. 
-              You can track the delivery status from your dashboard.
+              Your email has been delivered to {validContacts.length} recipients. 
+              You can track delivery status and engagement metrics from your dashboard.
             </p>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <h3 className="font-medium text-green-900 mb-2">What happens next?</h3>
               <ul className="text-sm text-green-800 space-y-1 text-left">
-                <li>• Emails are being delivered to recipients</li>
-                <li>• You'll receive delivery reports via email</li>
-                <li>• Track opens and clicks in your dashboard</li>
-                <li>• Bounced emails will be automatically flagged</li>
+                <li>• Emails are being delivered to all recipients</li>
+                <li>• Delivery reports will be available in your dashboard</li>
+                <li>• You'll receive notifications for bounced emails</li>
+                <li>• Open and click tracking is now active</li>
               </ul>
             </div>
           </div>
@@ -181,7 +243,7 @@ const SendCampaign: React.FC<SendCampaignProps> = ({
               <span>Back: Compose Email</span>
             </Link>
             
-            {(!uploadedFile || !subject || !body) && (
+            {!canSend && (
               <div className="text-sm text-gray-500 flex items-center">
                 Complete all steps to send campaign
               </div>

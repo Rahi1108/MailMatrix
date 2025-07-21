@@ -68,10 +68,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Mass-Mail Dashboard
+          MailMatrix Dashboard
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Manage your email campaigns with powerful tools and real-time analytics
+          Smart mass-mail dispatcher for efficient college communication
         </p>
       </div>
 
