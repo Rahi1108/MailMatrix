@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, FileText, Mail, Users, CheckCircle, ArrowLeft, Home, Clock } from 'lucide-react';
+import { Send, FileText, Mail, Users, CheckCircle, ArrowLeft, Home, Clock, AlertCircle } from 'lucide-react';
 import { EmailContact } from '../App';
+import { EmailService } from '../services/emailService';
 
 interface SendCampaignProps {
   uploadedFile: File | null;
@@ -23,34 +24,98 @@ const SendCampaign: React.FC<SendCampaignProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [sendingProgress, setSendingProgress] = useState(0);
+  const [sendingStatus, setSendingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const emailService = new EmailService();
 
   const validContacts = emailContacts.filter(contact => contact.isValid);
   const toContacts = validContacts.filter(contact => contact.category === 'to');
   const ccContacts = validContacts.filter(contact => contact.category === 'cc');
   const bccContacts = validContacts.filter(contact => contact.category === 'bcc');
 
-  const handleSend = async () => {
+  const handleSendReal = async () => {
     setIsSending(true);
+    setSendingStatus('sending');
+    setSendingProgress(0);
+    setErrorMessage('');
+
+    try {
+      // Test connection first
+      const connectionOk = await emailService.testConnection();
+      if (!connectionOk) {
+        throw new Error('Unable to connect to email server. Please check your backend configuration.');
+      }
+
+      // Prepare email data
+      const emailData = {
+        from: senderEmail,
+        to: toContacts.map(c => c.email),
+        cc: ccContacts.length > 0 ? ccContacts.map(c => c.email) : undefined,
+        bcc: bccContacts.length > 0 ? bccContacts.map(c => c.email) : undefined,
+        subject: subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+              ${body.split('\n').map(line => `<p style="margin: 10px 0;">${line}</p>`).join('')}
+            </div>
+          </div>
+        `,
+      };
+
+      // Send email
+      const result = await emailService.sendEmail(emailData);
+      
+      if (result.success) {
+        setSendingProgress(100);
+        setSendingStatus('success');
+        setIsSent(true);
+        onCampaignSent();
+        
+        alert(`🎉 Campaign sent successfully via Gmail SMTP!
+        
+✅ ${validContacts.length} emails delivered
+📧 TO: ${toContacts.length} recipients
+📧 CC: ${ccContacts.length} recipients  
+📧 BCC: ${bccContacts.length} recipients
+📨 Message ID: ${result.messageId}
+
+Your campaign has been sent through Gmail's SMTP server.`);
+      } else {
+        throw new Error(result.error || 'Failed to send email');
+      }
+    } catch (error) {
+      console.error('Email sending failed:', error);
+      setSendingStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendDemo = async () => {
+    setIsSending(true);
+    setSendingStatus('sending');
     setSendingProgress(0);
     
-    // Simulate sending progress
+    // Simulate sending progress for demo
     const interval = setInterval(() => {
       setSendingProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
           setIsSending(false);
+          setSendingStatus('success');
           setIsSent(true);
           onCampaignSent();
           
-          // Show success alert
-          alert(`🎉 Campaign sent successfully! 
+          alert(`🎉 Demo Campaign sent successfully! 
           
 ✅ ${validContacts.length} emails delivered
 📧 TO: ${toContacts.length} recipients
 📧 CC: ${ccContacts.length} recipients  
 📧 BCC: ${bccContacts.length} recipients
 
-Your campaign is now active and delivery reports will be available in your dashboard.`);
+This was a demo. To send real emails, set up the backend server with Gmail SMTP.`);
           
           return 100;
         }
@@ -159,6 +224,33 @@ Your campaign is now active and delivery reports will be available in your dashb
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {!isSent ? (
           <div className="text-center space-y-6">
+            {/* Backend Status Check */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <Mail className="h-5 w-5 text-blue-600" />
+                <h3 className="font-medium text-blue-900">Email Delivery Options</h3>
+              </div>
+              <div className="space-y-3">
+                <button
+                  onClick={handleSendReal}
+                  disabled={!canSend || isSending}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                >
+                  Send via Gmail SMTP (Real)
+                </button>
+                <button
+                  onClick={handleSendDemo}
+                  disabled={!canSend || isSending}
+                  className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                >
+                  Send Demo (Simulation)
+                </button>
+              </div>
+              <p className="text-xs text-blue-700 mt-2">
+                Real sending requires backend server setup with Gmail SMTP configuration
+              </p>
+            </div>
+
             {!canSend ? (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-center justify-center space-x-2 mb-2">
@@ -191,6 +283,39 @@ Your campaign is now active and delivery reports will be available in your dashb
                 <p className="text-sm text-gray-600">
                   Delivering emails to {validContacts.length} recipients... ({sendingProgress}%)
                 </p>
+                {sendingStatus === 'sending' && (
+                  <p className="text-xs text-blue-600">
+                    Using Gmail SMTP server for delivery...
+                  </p>
+                )}
+              </div>
+            ) : sendingStatus === 'error' ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-center space-x-2 text-red-600">
+                  <AlertCircle className="h-6 w-6" />
+                  <span className="font-medium">Sending Failed</span>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 text-sm">{errorMessage}</p>
+                  <div className="mt-3 space-y-2 text-xs text-red-700">
+                    <p><strong>Common solutions:</strong></p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Make sure the backend server is running</li>
+                      <li>Check Gmail SMTP credentials in .env file</li>
+                      <li>Verify App Password is correctly set</li>
+                      <li>Ensure 2FA is enabled on Gmail account</li>
+                    </ul>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSendingStatus('idle');
+                    setErrorMessage('');
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                >
+                  Try Again
+                </button>
               </div>
             ) : (
               <div>
@@ -198,13 +323,6 @@ Your campaign is now active and delivery reports will be available in your dashb
                 <p className="text-gray-600 mb-6">
                   Your campaign will be sent to {validContacts.length} recipients across {toContacts.length} TO, {ccContacts.length} CC, and {bccContacts.length} BCC addresses.
                 </p>
-                <button
-                  onClick={handleSend}
-                  className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                >
-                  <Send className="h-5 w-5 mr-2" />
-                  Send Campaign
-                </button>
               </div>
             )}
           </div>
@@ -221,10 +339,10 @@ Your campaign is now active and delivery reports will be available in your dashb
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <h3 className="font-medium text-green-900 mb-2">What happens next?</h3>
               <ul className="text-sm text-green-800 space-y-1 text-left">
-                <li>• Emails are being delivered to all recipients</li>
-                <li>• Delivery reports will be available in your dashboard</li>
-                <li>• You'll receive notifications for bounced emails</li>
-                <li>• Open and click tracking is now active</li>
+                <li>• Emails delivered via Gmail SMTP server</li>
+                <li>• Recipients will see your Gmail address as sender</li>
+                <li>• Delivery confirmations sent to your Gmail</li>
+                <li>• Check Gmail Sent folder for copies</li>
               </ul>
             </div>
           </div>
